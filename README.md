@@ -1,4 +1,4 @@
-Group project: Description
+# Group project: Description
 STAT 574E
 
 Overview
