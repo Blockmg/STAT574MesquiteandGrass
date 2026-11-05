@@ -1,0 +1,133 @@
+---
+title: "Project Proposal: Mesquite Density, Grass Cover, and Carbon Exchange in a Semi-Arid Savanna"
+author: "Group 2: Amit Hanadari-Levy, Lindsey Bell, Maiya Block Ngaybe, Brandon Mayer"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r packages, eval=FALSE}
+# Anticipated R packages (not run in the proposal)
+library(terra)     # raster handling
+library(sf)        # vector data and grids
+library(lidR)      # canopy height model, tree detection
+library(gstat)     # variograms
+library(ranger)    # random forest classification
+library(blockCV)   # spatial block cross-validation
+library(spdep)     # neighbours, Moran's I, SAR models
+library(fda)       # functional data smoothing and FPCA
+library(nlme)      # GLS with autocorrelated errors
+```
+
+# Overview of the Data
+
+| Data source | Description | Structure |
+|---|---|---|
+| Drone multispectral imagery | 2.5 cm orthomosaics, flown in May | Continuous raster, one snapshot per site |
+| Drone lidar | Used to derive a canopy height model (CHM) and tree locations | Raster + tree points |
+| Flux towers | ~20 years of carbon flux (NEE), precipitation, and temperature | Daily time series, one tower per site |
+
+**Site 1:** mesquite-dense. **Site 2:** grass-dominated savanna with lower mesquite density.
+
+The questions build on each other: we classify land cover (RQ1), use the cover maps to relate mesquite density to grass cover (RQ2), and then ask whether the savanna's carbon exchange is becoming more like the mesquite site's (RQ3).
+
+# 1. Research Questions
+
+**RQ1 – Classification transferability.**
+How well does a land-cover classifier (tree / grass / bare ground) trained at one site predict the other site, and does spatially clustered training data give a less reliable model than randomly sampled training data?
+
+**RQ2 – Mesquite density and grass cover.**
+How does the percentage of grass cover change as mesquite density increases?
+
+**RQ3 – Carbon exchange convergence.**
+Over the 20-year record, is the savanna's seasonal carbon exchange becoming more similar to the mesquite site's, and is precipitation or temperature more strongly associated with that change?
+
+**Descriptive statistics:** tree density (trees/ha) and mean tree height per site; percent tree, grass, and bare ground per site; annual NEE, precipitation, and mean temperature per site-year.
+
+# 2. Statistical Methods
+
+## Data preparation
+
+- Build a canopy height model from the lidar and detect individual trees with a local-maximum filter (`lidR`).
+- Aggregate the imagery to a manageable resolution (e.g., 25 cm) and hand-label reference points as tree, grass, or bare ground.
+- Aggregate flux data to daily values per site-year.
+- Compute an empirical variogram of NDVI at each site (`gstat`). The variogram range (the distance at which pixels stop being correlated) will set the block size for spatial cross-validation in RQ1 and the grid-cell size in RQ2.
+
+## RQ1: Classification transferability
+
+**Data type:** continuous raster with categorical predictions.
+
+**Method:** random forest classification (`ranger`) using the multispectral bands, NDVI, and canopy height. Random forest is a standard, well-performing method for land-cover mapping and handles correlated predictors.
+
+We will compare two training designs with the same number of points:
+
+1. **Random:** points sampled at random across the site.
+2. **Clustered:** points sampled in a few small clusters, mimicking how field data are often collected.
+
+For each design and each training site, we will measure accuracy (overall accuracy and per-class F1) in two ways: **within the training site**, using both random and spatial block cross-validation (`blockCV`), and **at the other site** (cross-site transfer).
+
+This is appropriate because nearby pixels are spatially autocorrelated. Clustered training data and random cross-validation can both make a model look more accurate than it really is. Comparing the designs, and comparing within-site accuracy to cross-site accuracy, shows how much spatial sampling affects model reliability. The best model will produce the cover maps for RQ2.
+
+## RQ2: Mesquite density and grass cover
+
+**Data type:** areal (equal-area grid cells).
+
+**Response:** in each grid cell, the number of grass pixels out of all non-canopy pixels (grass + bare ground), so the proportion is the percentage of grass in the open space between trees.
+
+**Predictor:** tree density (number of detected trees per cell). Cells from both sites are pooled so density ranges from sparse to dense.
+
+**Method:** a binomial GLM with a logit link,
+
+$$
+Y_i \sim \text{Binomial}(n_i, p_i), \qquad \text{logit}(p_i) = \beta_0 + \beta_1\,\text{density}_i,
+$$
+
+where $Y_i$ is the grass pixel count and $n_i$ is the non-canopy pixel count. We will test the residuals for spatial autocorrelation with Moran's I (`spdep`). If autocorrelation is present, we will add a spatial term by fitting a SAR model. This is appropriate because the response is a bounded count, and nearby grid cells are likely to be similar; ignoring that would make our estimate of $\beta_1$ look more certain than it is. The sign and size of $\beta_1$ answer the question directly.
+
+Currently, the only predictor included in this analysis is tree density but we can include additional predictors if necessary. 
+
+## RQ3: Carbon exchange convergence
+
+**Data type:** functional (one annual NEE curve per site-year).
+
+**Methods:**
+
+1. **Footprint check.** We will overlay each tower's approximate 80% flux footprint (Kljun et al. 2015) on the drone flight area to confirm that the imaged area is the area the tower measures.
+2. **FPCA.** Each annual NEE curve will be smoothed with a B-spline basis, and FPCA (`fda`) will summarize each site-year with a few scores describing the shape and timing of seasonal carbon uptake. FPCA is appropriate because we care about seasonal *timing*, which annual totals hide.
+3. **Convergence.** For each year we will compute the distance between the two sites' FPC scores, $C_y$. A decreasing $C_y$ over time means the savanna is becoming more like the mesquite site.
+4. **Trend and drivers.** We will fit a regression with AR(1) errors (`nlme::gls`), since consecutive years are not independent:
+
+$$
+C_y = \gamma_0 + \gamma_1\,\text{year} + \gamma_2\,\text{precip}_y + \gamma_3\,\text{temp}_y + \eta_y.
+$$
+
+The year coefficient tests for a trend, and comparing the standardized precipitation and temperature coefficients identifies which driver is more strongly associated with convergence.
+
+## Limitations
+
+The drone data are a single snapshot, so RQ2 describes the current relationship rather than change over time. With one tower per site, RQ3 can show whether the carbon signatures are converging, but it cannot directly link that convergence to a measured change in tree density.
+
+# 3. Group Member Responsibilities
+
+*I haven't assigned anything to anyone yet. Lets discuss over text and make a decision before the due date.*
+*Tentatively, I think Amit Hanadari-Levy -> PA, Lindsey Bell -> PB, Maiya Block Ngaybe -> PC, Brandon Mayer -> PD would work*
+|  | Person A | Person B | Person C | Person D |
+|---|---|---|---|---|
+| **Coding** | RQ1: labeling, random forest, cross-validation | RQ2: tree detection, grid counts, GLM/SAR | RQ3: flux processing, FPCA, trend model | Lidar CHM, variograms, footprint check, code organization |
+| **Report** | Methods section | RQ2 results | RQ3 results; summary of findings | Introduction to data; research goals; final edit |
+| **Video** | Explain methods; RQ1 results | RQ2 results | RQ3 results; summary | Introduce data and goals; edit video |
+
+# References
+
+Kljun, N., Calanca, P., Rotach, M. W., & Schmid, H. P. (2015). A simple two-dimensional parameterisation for Flux Footprint Prediction (FFP). *Geoscientific Model Development*, 8, 3695–3713.
+
+Ramsay, J. O., & Silverman, B. W. (2005). *Functional Data Analysis* (2nd ed.). Springer.
+
+Roberts, D. R., et al. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography*, 40, 913–929.
