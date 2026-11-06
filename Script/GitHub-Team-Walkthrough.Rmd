@@ -1,0 +1,370 @@
+---
+title: "Working on Our Project with GitHub + RStudio"
+subtitle: "A step-by-step guide for Group 2 (Mesquite & Grass)"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+# Nothing in this guide runs when you knit it. The code is for you to copy
+# into your own R Console, one step at a time.
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+# How to use this guide
+
+- **Do Parts 1–4 once.** They take about 20–30 minutes total.
+- **Part 5 is the routine** you'll repeat every time you work on the project.
+- Copy each code chunk into the **R Console** (bottom-left pane in RStudio) and press Enter. Do not paste it into the proposal file.
+- If something goes wrong, check **Part 8: When things go wrong** before panicking. Almost every mistake in Git can be undone.
+
+**Our repo:** <https://github.com/Blockmg/STAT574MesquiteandGrass>
+
+## The big idea in 30 seconds
+
+Think of the GitHub repo as the **shared master copy** of the project. Each of us has our **own copy** on our laptop.
+
+| Word | What it means |
+|---|---|
+| **Pull** | Download teammates' latest changes to your Computer |
+| **Commit** | Save a labelled snapshot of your changes (on your computer only) |
+| **Push** | Upload your commits to GitHub |
+| **Branch** | A private copy of the project where you can work without affecting anyone else |
+| **Pull request (PR)** | A request to merge your branch into the shared `main` version, so teammates can look first |
+
+The rhythm is: **Pull → work on a branch → Commit → Push → Pull request → Merge.**
+
+---
+
+# Part 1: Install the tools (once)
+
+## 1.1 Install Git
+
+- **Windows:** download Git from <https://gitforwindows.org> and click through the installer, keeping all the default options.
+- **Mac:** open the Terminal app, type `xcode-select --install`, and press Enter. Accept the prompt.
+
+Then **close and reopen RStudio**.
+
+## 1.2 Check that RStudio sees Git
+
+In RStudio go to **Tools → Global Options → Git/SVN**. The box labelled *Git executable* should show a path (something like `C:/Program Files/Git/bin/git.exe` or `/usr/bin/git`). If it's empty, restart your computer and check again.
+
+## 1.3 Install the helper packages
+
+```{r}
+install.packages(c("usethis", "gitcreds", "here"))
+```
+
+---
+
+# Part 2: Connect R to your GitHub account (once)
+
+You need a GitHub account first. Make one at <https://github.com> if you don't have one, and send your username to Maiya so she can add you (Part 3).
+
+## 2.1 Tell Git who you are
+
+Use the **same email** that's on your GitHub account, so your work shows up under your name.
+
+```{r}
+usethis::use_git_config(
+  user.name  = "Your Name",
+  user.email = "you@arizona.edu"
+)
+```
+
+## 2.2 Create a GitHub "token" (a password for R)
+
+GitHub doesn't accept your regular password from R. Instead you make a token.
+
+```{r}
+usethis::create_github_token()
+```
+
+A GitHub page opens in your browser with the right boxes already ticked.
+
+1. Under *Expiration*, pick a date **after the end of the semester**.
+2. Scroll down and click **Generate token**.
+3. **Copy the token** (it starts with `ghp_`). You won't be able to see it again.
+
+Now give it to R:
+
+```{r}
+gitcreds::gitcreds_set()
+```
+
+Paste the token when asked and press Enter.
+
+## 2.3 Check that everything worked
+
+```{r}
+usethis::git_sitrep()
+```
+
+Look for your name, your email, and a line saying your token is valid. If you see red ✖ marks, see Part 8.
+
+---
+
+# Part 3: Get access to the repo (once)
+
+**Maiya (the repo owner)** does this for everyone else:
+
+1. Open the repo on GitHub and click **Settings** (top bar).
+2. Click **Collaborators** in the left menu, then **Add people**.
+3. Enter each teammate's GitHub username.
+
+**Everyone else:** check your email for the invitation and click **Accept**. You can't push anything until you accept.
+
+---
+
+# Part 4: Download the project to your laptop (once)
+
+Pick a sensible folder, such as `Documents/STAT574`. Avoid cloud-synced folders like OneDrive, Dropbox, or iCloud, because they can fight with Git.
+
+```{r}
+usethis::create_from_github(
+  "Blockmg/STAT574MesquiteandGrass",
+  destdir = "~/Documents/STAT574",
+  fork    = FALSE
+)
+```
+
+RStudio opens the project in a new window. You should now see:
+
+- A **Git** tab in the top-right pane (next to Environment and History).
+- The project name `STAT574MesquiteandGrass` in the top-right corner of RStudio.
+- The `Script/` folder with the proposal in the Files pane.
+
+**From now on, always open the project by double-clicking `STAT574MesquiteandGrass.Rproj`** (or using the project menu in the top-right corner). If you open the `.Rmd` file directly, the Git tab won't appear.
+
+**Alternative without code:** File → New Project → Version Control → Git, then paste `https://github.com/Blockmg/STAT574MesquiteandGrass.git` as the repository URL.
+
+---
+
+# Part 5: The everyday routine
+
+Do this every time you sit down to work.
+
+## 5.1 Pull first
+
+In the **Git tab**, click the **blue down arrow (Pull)**. This grabs anything teammates have added since last time.
+
+> **Make this a habit.** Most problems come from working on an old copy.
+
+## 5.2 Make a branch for your task
+
+Click the **purple branch icon (New Branch)** in the Git tab. Give it a short name that says what you're doing, for example:
+
+- `rq1-random-forest`
+- `rq2-glm-model`
+- `proposal-responsibilities-table`
+- `fix-typos-intro`
+
+Leave *Sync branch with remote* ticked and click **Create**. The branch name now shows in the top-right of the Git tab. That's how you know which branch you're on.
+
+## 5.3 Do your work
+
+Edit files, write code, knit, and save as normal. Files you change will appear in the Git tab with a status letter:
+
+| Letter | Meaning |
+|---|---|
+| **M** (blue) | Modified |
+| **?** (yellow) | New file Git hasn't seen before |
+| **D** (red) | Deleted |
+
+## 5.4 Commit (save a snapshot)
+
+1. Click **Commit** in the Git tab. A new window opens.
+2. **Tick the boxes** next to the files you want to include. The bottom half shows exactly what changed: green lines were added, red lines were removed.
+3. Write a short message in the top-right box saying **what you did**:
+   - Good: `Add random forest training code for RQ1`
+   - Good: `Fill in Person B responsibilities`
+   - Not helpful: `update`, `stuff`, `asdf`
+4. Click **Commit**, then close the pop-up.
+
+Commit whenever you finish a small piece of work. Several small commits are better than one huge one.
+
+## 5.5 Push (upload)
+
+Click the **green up arrow (Push)**. Your branch and commits are now on GitHub, but `main` hasn't changed yet.
+
+## 5.6 Open a pull request
+
+1. Go to the repo on GitHub. A yellow banner appears: **"your-branch had recent pushes"**. Click **Compare & pull request**.
+2. Write a sentence or two about what you changed and anything you'd like feedback on.
+3. On the right, add a teammate under **Reviewers**.
+4. Click **Create pull request**.
+
+## 5.7 Review and merge
+
+- **Reviewer:** open the PR, click the **Files changed** tab, and look over the changes. Leave comments if needed, then click **Merge pull request → Confirm merge**.
+- **Author:** after it's merged, click **Delete branch** on GitHub.
+
+## 5.8 Go back to `main`
+
+In RStudio's Git tab, use the **branch dropdown** (top-right of the tab) to switch back to `main`, then click **Pull**. You're now up to date and ready to start the next task at step 5.2.
+
+---
+
+# Part 6: Rules that keep us out of trouble
+
+## Don't put the drone or lidar data on GitHub
+
+GitHub **rejects any file over 100 MB**, and the orthomosaics, lidar point clouds, and canopy height models will be much bigger than that. Once a huge file is committed, it's painful to remove.
+
+- Keep raw data in a **shared drive** (Box, Google Drive, etc.). *We should probably make one of those or if Lindsey has a folder she wants to share we can use that.*
+- Each person puts a copy in a `data/` folder inside the project on their own laptop.
+- `data/` is listed in `.gitignore`, so Git never tries to upload it.
+- Read files with `here::here()` so the paths work on everyone's laptop:
+
+```{r}
+library(here)
+chm   <- terra::rast(here("data", "site1_chm.tif"))
+flux  <- read.csv(here("data", "flux_daily.csv"))
+```
+
+Never use a path like `C:/Users/yourname/Desktop/...`; it only works on your machine.
+
+Small things are fine to commit: scripts, the `.Rmd` files, small summary tables (under a few MB), and figures for the report.
+
+## Other rules
+
+| Rule | Why |
+|---|---|
+| **Pull before you start** | You build on the latest version |
+| **Never work directly on `main`** | Everything gets checked before it's shared |
+| **One branch per task** | Easy to see who's doing what |
+| **Stick to your own files/sections when possible** | Fewer conflicts (see Part 7) |
+| **Don't commit knitted `.html` files** | Everyone's knit is slightly different and causes fake conflicts |
+| **Push at least once per work session** | Your work is backed up and teammates can see progress |
+
+---
+
+# Part 7: Splitting the work so we don't collide
+
+Right now the whole proposal is one file. That's fine for the proposal. For the **report**, it will help to give each research question its own file, matching the responsibilities table:
+
+```
+Script/
+  report.Rmd            <- main file that pulls the pieces together
+  01-intro-data.Rmd     <- Person D
+  02-methods.Rmd        <- Person A
+  03-rq1-results.Rmd    <- Person A
+  04-rq2-results.Rmd    <- Person B
+  05-rq3-results.Rmd    <- Person C
+  06-conclusions.Rmd
+R/
+  rq1_random_forest.R
+  rq2_glm.R
+  rq3_fpca.R
+```
+
+Inside `report.Rmd`, each piece is pulled in with an empty "child" chunk. Type three backticks, then `{r child = "03-rq1-results.Rmd"}`, and on the next line close the chunk with three backticks. Knitting `report.Rmd` then drops each section's text and code in at that spot, in order.
+
+When people work in **different files**, Git combines their work automatically.
+
+Two other habits help a lot:
+
+- **Write one sentence per line** in the text parts of `.Rmd` files. It looks odd, but it makes changes much easier to compare and merge. Line breaks within a paragraph don't show up in the knitted document.
+- **Don't reformat text you didn't change** (re-wrapping paragraphs, re-indenting code). It shows up as a change and can create conflicts.
+
+---
+
+# Part 8: When things go wrong
+
+## "Merge conflict"
+
+This means you and a teammate changed the **same lines** of the same file. Git can't guess which version to keep, so it marks the spot:
+
+```
+<<<<<<< HEAD
+Your version of the sentence.
+=======
+Your teammate's version of the sentence.
+>>>>>>> main
+```
+
+To fix it:
+
+1. Open the file and find the `<<<<<<<` markers. The Git tab shows the file with an orange **U**.
+2. Edit the text so it says what it **should** say. Keep one version, combine them, or rewrite.
+3. **Delete all three marker lines** (`<<<<<<<`, `=======`, `>>>>>>>`).
+4. Save, then Commit (tick the file) and Push.
+
+If you're not sure which version is right, text the teammate. It usually takes a minute to sort out.
+
+## "Push rejected" / "Updates were rejected"
+
+Someone pushed to the same branch before you. Click **Pull** first, then **Push** again.
+
+## I made changes on `main` by accident
+
+If you haven't committed yet, just create a new branch now (step 5.2). Your uncommitted changes come with you to the new branch.
+
+If you already committed to `main` but haven't pushed, ask Brandon or another teammate for help before pushing.
+
+## The Git tab disappeared
+
+You probably opened the `.Rmd` file without opening the project. Open `STAT574MesquiteandGrass.Rproj`.
+
+## Authentication failed / asked for a password
+
+Your token expired or wasn't saved. Redo step 2.2, then run `usethis::git_sitrep()`.
+
+## I want to throw away my changes to a file and start over
+
+In the Git tab, right-click the file → **Revert**. This resets it to the last commit. **This can't be undone**, so be sure.
+
+## I want to see an older version of something
+
+Click the **clock icon (History)** in the Git tab. You can see every commit, who made it, and exactly what changed. On GitHub, open any file and click **History** or **Blame** (who last changed each line).
+
+---
+
+# Part 9: Tracking who's doing what (GitHub Issues)
+
+Use **Issues** on GitHub as our shared to-do list. It keeps everything in one place instead of scattered across texts.
+
+1. Go to the **Issues** tab of the repo → **New issue**.
+2. Give it a clear title, e.g. *"Hand-label reference points for Site 1"*.
+3. On the right, **assign** it to whoever is doing it.
+4. When you open a pull request that finishes the task, write `Closes #7` (using the issue's number) in the description. The issue closes automatically when the PR is merged.
+
+**Optional:** the **Projects** tab can turn the issues into a board with columns like *To do → In progress → Done*.
+
+---
+
+# Part 10: Your first practice run
+
+Try the whole routine once on something small and low-risk before doing real work.
+
+1. Open the project and **Pull**.
+2. Create a branch called `practice-yourname`.
+3. Open `Script/Stat574 Final Project Proposal.Rmd`. In the **Group Member Responsibilities** section, under the table, add one line:
+   `- Your Name: confirmed I can push to GitHub`
+4. Save, **Commit** with the message `Practice commit from Your Name`, and **Push**.
+5. Open a **pull request** on GitHub and request a review from one teammate.
+6. Review someone else's practice PR and merge it.
+7. Switch back to `main` and **Pull**. You should see everyone's practice lines.
+
+If all four lines show up, the team is set up correctly.
+
+---
+
+# Quick reference card
+
+| I want to... | Do this |
+|---|---|
+| Get teammates' latest work | Git tab → **Pull** (blue ↓) |
+| Start a new task | Git tab → **New Branch** (purple icon) |
+| Save a snapshot | Git tab → **Commit** → tick files → message → Commit |
+| Upload my work | Git tab → **Push** (green ↑) |
+| Ask to merge my work | GitHub → **Compare & pull request** |
+| See which branch I'm on | Top-right of the Git tab |
+| Switch branches | Branch dropdown in the Git tab |
+| See history | Git tab → **clock icon** |
+| Check my setup | `usethis::git_sitrep()` |
+
+**More help:** *Happy Git and GitHub for the useR* by Jenny Bryan, free at <https://happygitwithr.com>.
