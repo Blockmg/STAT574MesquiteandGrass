@@ -3,9 +3,9 @@
 .RData
 .Ruserdata
 data/
- *.tif
- *.las
- *.laz
- *.html
- *_cache/
- *_files/
+*.tif
+*.las
+*.laz
+*.html
+*_cache/
+*_files/
