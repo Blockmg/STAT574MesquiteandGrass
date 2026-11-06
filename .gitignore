@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+data/
+ *.tif
+ *.las
+ *.laz
+ *.html
+ *_cache/
+ *_files/
