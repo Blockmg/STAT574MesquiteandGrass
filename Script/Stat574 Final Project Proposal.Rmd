@@ -124,6 +124,41 @@ The drone data are a single snapshot, so RQ2 describes the current relationship 
 | **Report** | Methods section | RQ2 results | RQ3 results; summary of findings | Introduction to data; research goals; final edit |
 | **Video** | Explain methods; RQ1 results | RQ2 results | RQ3 results; summary | Introduce data and goals; edit video |
 
+# 4. Timeline
+
+Course deadlines are in **bold**; the rest are internal targets we can adjust.
+"Owner" refers to the Person A–D columns in the responsibilities table.
+
+| Target date | Task | Owner |
+|---|---|---|
+| **Sun 11/8** | **Proposal submitted to D2L** | All (Deliverables Manager does final check) |
+| **Week of 11/9** | **Check-in meeting with Henry (10–20 min)** | All |
+| Fri 11/13 | Raw data on the shared drive; everyone has `data/` set up locally | Person D |
+| Sun 11/15 | Lidar CHM, tree detection, and NDVI variograms done; cell size chosen | Person D |
+| Fri 11/20 | Reference points labeled; random forest fit; cross-validation run (**HW 5 also due**) | Person A |
+| Tue 11/24 | Cover maps finished; grid counts and RQ2 GLM/spatial model fit | Person B |
+| Tue 11/24 | Flux data processed; FPCA and trend model fit | Person C |
+| Mon 11/30 & Wed 12/2 | In-class project time: review results together | All |
+| Wed 12/2 | Slides and video script drafted | All |
+| **Fri 12/4** | Video recorded and edited (**HW 6 also due**) | Person D |
+| **Sat 12/5** | Video sent to Henry (must be in more than 24 hours before presentations) | Communicator |
+| **Mon 12/7** | **Presentations** | All |
+| Finals week (date TBD) | **Report and code appendix submitted** | All |
+
+# 5. Anticipated Challenges
+
+| Challenge | How we will address it |
+|---|---|
+| Imagery was flown in May, before the monsoon, so dry grass and bare ground may look alike spectrally. | Add canopy height and texture as classifier inputs, and report per-class accuracy so we can see if grass vs. bare ground is the weak spot. |
+| Grass under tree canopies cannot be seen from above. | The RQ2 response already counts grass only among non-canopy pixels; we will state this clearly as a limitation. |
+| Tree detection may merge crowns at the dense mesquite site. | Compare detected trees with hand counts in a few test plots; use percent canopy cover as an alternative predictor. |
+| If grid cells are small, tree density will be mostly 0 or 1. | Test several cell sizes informed by the variogram range, and compare tree count vs. canopy cover as the predictor. |
+| Pooling both sites means site differences are mixed up with density. | Include a site term (and possibly a site × density interaction), and check that the two sites' density ranges overlap. |
+| Standard SAR models in `spdep` assume a normal response, but RQ2's response is binomial. | Fit the spatial binomial model with `spmodel` (`spgautor()` with a SAR or CAR structure, or `spglm()`). |
+| Fine-resolution grids produce tens of thousands of cells, which slows spatial models. | Use `spmodel`'s big-data options (`local = TRUE`), coarser cells, or a random subsample. |
+| RQ3 has only about 20 site-years, flux records may have gaps, and precipitation and temperature are similar at the two towers. | Use gap-filled flux products, confirm the overlapping record length, keep the trend model simple, and interpret driver comparisons cautiously. |
+| Raw data files are too large for GitHub. | Store raw data on a shared drive; `data/` and large file types are in `.gitignore`. |
+
 # References
 
 Kljun, N., Calanca, P., Rotach, M. W., & Schmid, H. P. (2015). A simple two-dimensional parameterisation for Flux Footprint Prediction (FFP). *Geoscientific Model Development*, 8, 3695–3713.
